@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تخیّل - مکمل بلاگ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Nastaliq Urdu', serif;
+            text-align: center;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: auto; }
+        h1 { font-size: 36px; }
+        .blog-post {
+            background: white;
+            padding: 50px;
+            margin-top: 10px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
+            text-align: right;
+            word-spacing: 10px;
+        }
+    </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuQhW18NDfvQJq9cZUfL1lfUpsC9qNIok",
+            authDomain: "takhayul-75699.firebaseapp.com",
+            projectId: "takhayul-75699",
+            storageBucket: "takhayul-75699.appspot.com",
+            messagingSenderId: "711833993354",
+            appId: "1:711833993354:web:eeb673128a1f5deaddad73",
+            measurementId: "G-DYHXF4FDWG"
+        };
+        function isUrdu(text) {
+    const urduCharRegex = /[\u0600-\u06FF]/; // Checks for Urdu characters
+    return urduCharRegex.test(text);
+}
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function loadFullBlog() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const blogId = urlParams.get('id');
+
+            if (!blogId) {
+                document.getElementById('blog-container').innerHTML = "<p>بلاگ نہیں ملا!</p>";
+                return;
+            }
+
+            const blogRef = doc(db, "blogs", blogId);
+            const blogSnap = await getDoc(blogRef);
+
+            if (blogSnap.exists()) {
+                const blog = blogSnap.data();
+                document.getElementById('blog-container').innerHTML = `
+                    <div class="blog-post">
+                        <h2>${blog.title}</h2>
+                        <p style="white-space: pre-wrap; font-family: inherit; direction: ${isUrdu(blog.content) ? 'rtl' : 'ltr'};">${blog.content}</p>
+                        <small>✍️ قلمی نام: <strong>${blog.penName || "نامعلوم"}</strong></small><br>
+                        <small>⏰ ${blog.timestamp?.toDate().toLocaleString("ur-PK") || "نامعلوم"}</small>
+                    </div>
+                `;
+            } else {
+                document.getElementById('blog-container').innerHTML = "<p>یہ بلاگ موجود نہیں ہے!</p>";
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", loadFullBlog);
+    </script>
+</head>
+<body>
+    <h1>بلاگ کی تفصیل</h1>
+    <a href="blogs.html">تمام بلاگز دیکھیں</a>
+    <div class="container">
+        <div id="blog-container"></div>
+    </div>
+</body>
+</html>
