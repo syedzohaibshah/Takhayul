@@ -20,8 +20,6 @@
             margin-top: 10px;
             border-radius: 15px;
             box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
-            text-align: right;
-            word-spacing: 10px;
         }
     </style>
     <script type="module">
@@ -37,11 +35,19 @@
             appId: "1:711833993354:web:eeb673128a1f5deaddad73",
             measurementId: "G-DYHXF4FDWG"
         };
-        function isUrdu(text) {
-    const urduCharRegex = /[\u0600-\u06FF]/; // Checks for Urdu characters
-    return urduCharRegex.test(text);
-}
 
+        function detectDirection(text) {
+            const urduCharRegex = /[\u0600-\u06FF]/;
+            const englishCharRegex = /[A-Za-z]/;
+
+            if (urduCharRegex.test(text) && !englishCharRegex.test(text)) {
+                return { direction: "rtl", align: "right", spacing: "normal" }; // Urdu
+            } else if (englishCharRegex.test(text) && !urduCharRegex.test(text)) {
+                return { direction: "ltr", align: "left", spacing: "0.4em" }; // English with extra spacing
+            } else {
+                return { direction: "auto", align: "justify", spacing: "normal" }; // Mixed content
+            }
+        }
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -60,12 +66,14 @@
 
             if (blogSnap.exists()) {
                 const blog = blogSnap.data();
+                const { direction, align, spacing } = detectDirection(blog.content);
+
                 document.getElementById('blog-container').innerHTML = `
-                    <div class="blog-post">
+                    <div class="blog-post" style="direction: ${direction}; text-align: ${align}; word-spacing: ${spacing};">
                         <h2>${blog.title}</h2>
-                        <p style="white-space: pre-wrap; font-family: inherit; direction: ${isUrdu(blog.content) ? 'rtl' : 'ltr'};">${blog.content}</p>
-                        <small>✍️ قلمی نام: <strong>${blog.penName || "نامعلوم"}</strong></small><br>
-                        <small>⏰ ${blog.timestamp?.toDate().toLocaleString("ur-PK") || "نامعلوم"}</small>
+                        <p style="white-space: pre-wrap; font-family: inherit;">${blog.content}</p>
+                        <small><strong>${blog.penName || "نامعلوم"}</strong></small><br>
+                        <small> ${blog.timestamp?.toDate().toLocaleString("ur-PK") || "نامعلوم"}</small>
                     </div>
                 `;
             } else {

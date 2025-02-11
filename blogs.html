@@ -10,7 +10,6 @@
             font-family: 'Noto Nastaliq Urdu', serif;
             text-align: center;
             background-color: #f9f9f9;
-            
             padding: 20px;
         }
         .container { max-width: 900px; margin: auto; }
@@ -22,77 +21,93 @@
             margin-top: 10px;
             border-radius: 15px;
             box-shadow: 0px 0px 5px rgba(0,0,0,0.1);
-            text-align: right;
-            word-spacing: 10px;
         }
     </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDuQhW18NDfvQJq9cZUfL1lfUpsC9qNIok",
-        authDomain: "takhayul-75699.firebaseapp.com",
-        projectId: "takhayul-75699",
-        storageBucket: "takhayul-75699.appspot.com",
-        messagingSenderId: "711833993354",
-        appId: "1:711833993354:web:eeb673128a1f5deaddad73",
-        measurementId: "G-DYHXF4FDWG"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuQhW18NDfvQJq9cZUfL1lfUpsC9qNIok",
+            authDomain: "takhayul-75699.firebaseapp.com",
+            projectId: "takhayul-75699",
+            storageBucket: "takhayul-75699.appspot.com",
+            messagingSenderId: "711833993354",
+            appId: "1:711833993354:web:eeb673128a1f5deaddad73",
+            measurementId: "G-DYHXF4FDWG"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    function isUrdu(text) {
-    const urduCharRegex = /[\u0600-\u06FF]/; // Checks for Urdu characters
-    return urduCharRegex.test(text);
-}
+        function detectDirection(text) {
+            const urduCharRegex = /[\u0600-\u06FF]/;
+            const englishCharRegex = /[A-Za-z]/;
 
-    async function loadBlogs() {
-        const blogsList = document.getElementById('blogs-list');
-        if (!blogsList) {
-            console.error("❌ Element with id 'blogs-list' not found!");
-            return;
+            if (urduCharRegex.test(text) && !englishCharRegex.test(text)) {
+                return { direction: "rtl", align: "right", spacing: "normal" }; // Urdu
+            } else if (englishCharRegex.test(text) && !urduCharRegex.test(text)) {
+                return { direction: "ltr", align: "left", spacing: "0.4em" }; // English
+            } else {
+                return { direction: "auto", align: "justify", spacing: "normal" }; // Mixed
+            }
         }
 
-        blogsList.innerHTML = "<p>لوڈ ہو رہا ہے...</p>";
-
-        try {
-            const querySnapshot = await getDocs(query(collection(db, "blogs"), orderBy("timestamp", "desc")));
-            blogsList.innerHTML = "";
-            querySnapshot.forEach((doc) => {
-                const blog = doc.data();
-                const blogId = doc.id; // Get the document ID
-                
-                const previewContent = blog.content.split(" ").slice(0, 20).join(" ") + "..."; // First 20 words
-                
-                const blogElement = document.createElement("div");
-                blogElement.classList.add("blog-post");
-                blogElement.innerHTML = `
-                    <h2><a href="blog.html?id=${blogId}">${blog.title}</a></h2>
-                    <pstyle="white-space: pre-wrap; font-family: inherit; direction: ${isUrdu(blog.content) ? 'rtl' : 'ltr'};">${previewContent}</p>
-                    <small> قلمی نام: <strong>${blog.penName || "نامعلوم"}</strong></small><br>
-                `;
-                blogsList.appendChild(blogElement);
-            });
-
-            if (querySnapshot.empty) {
-                blogsList.innerHTML = "<p>ابھی کوئی بلاگ دستیاب نہیں!</p>";
+        async function loadBlogs() {
+            const blogsList = document.getElementById('blogs-list');
+            if (!blogsList) {
+                console.error("❌ Element with id 'blogs-list' not found!");
+                return;
             }
 
-        } catch (error) {
-            console.error("Error fetching blogs:", error);
-            blogsList.innerHTML = "<p>بلاگ لوڈ کرنے میں مسئلہ ہوا</p>";
+            blogsList.innerHTML = "<p>لوڈ ہو رہا ہے...</p>";
+
+            try {
+                const querySnapshot = await getDocs(query(collection(db, "blogs"), orderBy("timestamp", "desc")));
+                blogsList.innerHTML = "";
+
+                querySnapshot.forEach((doc) => {
+                    const blog = doc.data();
+                    const blogId = doc.id;
+
+                    const { direction, align, spacing } = detectDirection(blog.content);
+                    const { direction: titleDir, align: titleAlign } = detectDirection(blog.title);
+
+                    const previewContent = blog.content.split(" ").slice(0, 20).join(" ") + "..."; // First 20 words
+
+                    const blogElement = document.createElement("div");
+                    blogElement.classList.add("blog-post");
+                    blogElement.style.direction = direction;
+                    blogElement.style.textAlign = align;
+
+                    blogElement.innerHTML = `
+                        <h2 style="direction: ${titleDir}; text-align: ${titleAlign} ;word-spacing: ${spacing};">
+                            <a href="blog.html?id=${blogId}">${blog.title}</a>
+                        </h2>
+                        <p style="white-space: pre-wrap; font-family: inherit; direction: ${direction}; text-align: ${align}; word-spacing: ${spacing};">
+                            ${previewContent}
+                        </p>
+                        <small> <strong>${blog.penName || "نامعلوم"}</strong></small>
+                    `;
+                    blogsList.appendChild(blogElement);
+                });
+
+                if (querySnapshot.empty) {
+                    blogsList.innerHTML = "<p>ابھی کوئی بلاگ دستیاب نہیں!</p>";
+                }
+
+            } catch (error) {
+                console.error("Error fetching blogs:", error);
+                blogsList.innerHTML = "<p>بلاگ لوڈ کرنے میں مسئلہ ہوا</p>";
+            }
         }
-    }
 
-    window.addEventListener("DOMContentLoaded", loadBlogs);
-</script>
-
+        window.addEventListener("DOMContentLoaded", loadBlogs);
+    </script>
 </head>
 <body>
-    <h1 style="font-weight: 900 ;word-spacing: 10px">All  Writings</h1>
-    <a href="index.html"> ...Write</a>
+    <h1 style="font-weight: 900; word-spacing: 10px;">All Writings</h1>
+    <a href="index.html">...Write</a>
     <div class="container">
         <div id="blogs-list"></div>
     </div>
